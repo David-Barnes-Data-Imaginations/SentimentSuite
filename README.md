@@ -15,6 +15,16 @@ Features
 - API‑driven architecture – Built on FastAPI, the project exposes endpoints for uploading CSV files, invoking different models, and viewing interactive dashboards.
 - Modular design – Visualisation functions are separated into their own module (enhanced_visualisation.py) so they can be integrated into larger systems or reused elsewhere.
 
+## Other Frameworks:
+Cognitive Distortions (from CBT)
+
+These are biased thought patterns that skew our perception of reality. Examples:
+
+Catastrophising: “Everything is going to fall apart.”
+Overgeneralising: “I failed once, so I’ll always fail.”
+Mind-reading: “They must think I’m incompetent.”
+More to be added
+
 ### Getting Started
 
 1. Clone the repository:
@@ -35,7 +45,10 @@ You can install them with:
        uvicorn SentimentSuite:app --reload --port 8000
        ```
 
-4. Upload your data. Navigate to `http://localhost:8000/dashboard` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
+4. Upload your data. Navigate to `http://localhost:8000/dashboard-all` and upload a CSV file with an utterance column 
+- I've added two examples you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). 
+- I've added the 'go-to' Psychology transcript of Carl and Gloria though i need to have my smolagent tidy it for me to the correct CSV format
+5. Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
 
 6. View the dashboard. After analysis completes, click “View Dashboard” (bottom of the page) to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
 
@@ -54,3 +67,22 @@ appropriate tests/documentation.
 #### License
 This project is released under the MIT License. See LICENSE for
 details.
+
+## TODO:
+
+#### Add in one more Psychology Framework, here's a brief explanation:
+ 1. Erikson’s Psychosocial Development Model
+What it is:
+Erikson’s model describes eight life stages, each associated with a core psychological conflict. For example:
+Age 0–1: Trust vs. Mistrust
+Age 12–18: Identity vs. Role Confusion
+Age 40–65: Generativity vs. Stagnation
+
+Why it’s useful:
+You can predict behaviour based on stage (e.g. young adults may question purpose, mid-lifers wrestle with contribution vs. burnout).
+It enables timeline-based persona evolution, perfect for graph-based NPCs or chatbot personas who “age” or undergo “narrative arcs”.
+
+
+2. Combine my SmolAgents runner (from the data scientist project to dynamically learn, transcribe and send an annonomised summary to GPT with is extremely good at psychological analysis).
+
+3. Smolagents runner to transcribe and annonomise from recordings

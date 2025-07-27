@@ -1,5 +1,4 @@
 import base64
-from enhanced_visualisation import create_sentiment_dashboard_plotly, create_emotion_dashboard_plotly
 from fastapi import FastAPI, UploadFile, File, HTTPException
 import requests
 import os
@@ -16,9 +15,15 @@ import re
 import io
 from typing import Any, Optional
 from datetime import datetime
+from enhanced_visualisation import create_sentiment_dashboard_plotly, create_emotion_dashboard_plotly
+from valence_circumplex_plot import create_circumplex_plot
+from sentiment_dashboard_tabs import build_dashboard_tabbed
+from circumplex_plot import create_circumplex_plot
+from distortion_detection import detect_distortions
 
 torch.set_float32_matmul_precision('high')
-# Updated the Sentiment2D class with more emotions and patterns
+# Updated the Sentiment2D class with
+# more emotions and patterns
 class Sentiment2D:
     def __init__(self):
         """Initialize the sentiment analyzer with expanded emotion keywords and their values"""
@@ -117,6 +122,82 @@ app = FastAPI()
 # Initialize Sentiment2D
 sentiment2d = Sentiment2D()
 
+
+def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
+    if kind == "utterance":
+        df = pd.DataFrame(data)
+        for row in df.itertuples():
+            distortions = detect_distortions(row.utterance)
+            df.at[row.Index, "distortions"] = ", ".join([d["distortion"] for d in distortions]) if distortions else "None"
+
+        main_figs = create_sentiment_dashboard_plotly(df)
+        circ_fig = create_circumplex_plot(df)
+
+        html_parts = [
+            f"<h3>Model: {model_name}</h3>",
+            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance','distortions']].to_string(index=False)}</pre></p>",
+            main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
+            main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
+            main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
+            circ_fig.to_html(full_html=False, include_plotlyjs=False)
+        ]
+
+    else:
+        df = pd.DataFrame(data)
+        summary_figs = create_emotion_dashboard_plotly(df)
+        html_parts = [
+            summary_figs['box'].to_html(full_html=False, include_plotlyjs='cdn'),
+            summary_figs['mean_std'].to_html(full_html=False, include_plotlyjs=False),
+            summary_figs['range_bar'].to_html(full_html=False, include_plotlyjs=False)
+        ]
+
+    return "".join(html_parts)
+
+
+@app.get("/dashboard_all", response_class=HTMLResponse)
+def dashboard_all_models():
+    tabs_html = []
+    for model_name, result_data in analysis_store.results.items():
+        if not result_data:
+            continue
+        kind = "utterance" if model_name in ["bart", "nous-hermes"] else "summary"
+        tab_html = build_dashboard_tabbed(model_name, result_data, kind)
+        tabs_html.append(f"<div class='tab-content' id='{model_name}' style='display:none'>{tab_html}</div>")
+
+    buttons = "".join([
+        f"<button class='tab-button' onclick=\"showTab('{model}')\">{model.title()}</button>"
+        for model in analysis_store.results if analysis_store.results[model]
+    ])
+
+    script = """
+    <script>
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(div => div.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+        }
+        window.onload = () => {
+            const firstTab = document.querySelector('.tab-content');
+            if (firstTab) firstTab.style.display = 'block';
+        }
+    </script>
+    """
+
+    return HTMLResponse(content=f"""
+        <html><head>
+        <style>
+        body {{ background:#1a1a1a; color:white; font-family:sans-serif; }}
+        .tab-button {{ margin:5px; padding:10px; background:#2d2d2d; border:none; color:white; cursor:pointer; }}
+        .tab-button:hover {{ background:#444; }}
+        .tab-content {{ padding: 20px; background:#0d0c1d; margin-top: 10px; border-radius: 10px; }}
+        pre {{ white-space: pre-wrap; word-wrap: break-word; }}
+        </style></head>
+        <body>
+        <h1>SentimentSuite Dashboard</h1>
+        <div>{buttons}</div>
+        {''.join(tabs_html)}
+        {script}
+        </body></html>
+    """, status_code=200)
 
 # Global classifiers are now available.
 classifier = pipeline(
@@ -290,12 +371,15 @@ def analyze_bart(file: UploadFile = File(...)):
     
     for utt in utterances:
         valence, arousal = sentiment2d(utt)
+        distortions = detect_distortions(utt)
         results.append({
             "utterance": utt,
-            "valence": round(valence, 3),  # Round to 3 decimal places for cleaner output
-            "arousal": round(arousal, 3)
+            "valence": round(valence, 3),
+            "arousal": round(arousal, 3),
+            "distortions": [d["distortion"] for d in distortions]
         })
     return results
+
 
 @app.get("/upload-csv", response_class=HTMLResponse)
 async def upload_form():
