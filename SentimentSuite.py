@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 import requests
 import os
 import torch
+
 from starlette.responses import HTMLResponse
 import matplotlib
 matplotlib.use('Agg')

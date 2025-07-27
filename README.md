@@ -35,9 +35,9 @@ You can install them with:
        uvicorn SentimentSuite:app --reload --port 8000
        ```
 
-4. Upload your data. Navigate to `http://localhost:8000/upload-csv` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
+4. Upload your data. Navigate to `http://localhost:8000/dashboard` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
 
-5. View the dashboard. After analysis completes, click “View Dashboard” to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
+6. View the dashboard. After analysis completes, click “View Dashboard” (bottom of the page) to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
 
 ## Part of a Larger Vision – The Persona‑Forge
 SentimentSuite is a small, self‑contained module within a broader project called The Persona‑Forge. The goal of the Persona‑Forge is to build detailed personality maps by combining knowledge graph technology with psychological frameworks like the Big Five, Myers–Briggs and Russell’s Circumplex. By augmenting language models with these maps, the Forge aims to create highly realistic personalities for:

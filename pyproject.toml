@@ -19,7 +19,15 @@ dependencies = [
     "altair>=5.3.0",
     "starlette>=0.37.2",
     "numpy>=2.0",
-    "pytz>=1.0"
-
+    "pytz>=2024.1",
 ]
+[project.optional-dependencies]
+dev = [
+    "ipython",
+    "black",
+    "ruff",
+    "pytest",
+    "mypy"
+]
+
 
