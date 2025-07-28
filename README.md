@@ -35,7 +35,7 @@ You can install them with:
        uvicorn SentimentSuite:app --reload --port 8000
        ```
 
-4. Upload your data. Navigate to `http://localhost:8000/upload-csv` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
+4. Upload your data. Navigate to `http://localhost:8000/upload-csv` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of taken from a well-know Therapy session 'Carl and Gloria'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
 <h2 align='center'>
   This shows the upload screen and BARTs output when analyzed
 </h2>
