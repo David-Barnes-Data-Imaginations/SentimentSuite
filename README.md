@@ -36,8 +36,49 @@ You can install them with:
        ```
 
 4. Upload your data. Navigate to `http://localhost:8000/upload-csv` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
-
+<h2 align='center'>
+  This shows the upload screen and BARTs output when analyzed
+</h2>
+<br><br>
+<p align="center">
+  <img src="./BART_git.png" alt="Upload diagram">
+</p>
 5. View the dashboard. After analysis completes, click “View Dashboard” to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
+
+<h2 align='center'>
+  The top half of the BART dashboard
+</h2>
+<br><br>
+<p align="center">
+  <img src="./BART_git2.png" alt="BART diagram 1">
+</p>
+
+<h2 align='center'>
+  The bottom half of the BART dashboard
+</h2>
+<br><br>
+<p align="center">
+  <img src="./BART_git3.png" alt="BART diagram 2">
+</p>
+
+<h2 align='center'>
+  The top half of the ModernBert dashboard
+</h2>
+<br><br>
+<p align="center">
+  <img src="./Modernbert_git.png" alt="Bert diagram 1">
+</p>
+
+
+<h2 align='center'>
+  The bottom graph of the ModernBert dashboard
+</h2>
+<br><br>
+<p align="center">
+  <img src="./Modernbert_git2.png" alt="Bert diagram 2">
+</p>
+
+
 
 ## Part of a Larger Vision – The Persona‑Forge
 SentimentSuite is a small, self‑contained module within a broader project called The Persona‑Forge. The goal of the Persona‑Forge is to build detailed personality maps by combining knowledge graph technology with psychological frameworks like the Big Five, Myers–Briggs and Russell’s Circumplex. By augmenting language models with these maps, the Forge aims to create highly realistic personalities for:
