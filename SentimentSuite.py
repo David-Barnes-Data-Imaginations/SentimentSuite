@@ -122,7 +122,7 @@ app = FastAPI()
 sentiment2d = Sentiment2D()
 
 
-def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
+def build_dashboard_tabbed(model_name: str, data: object, kind: str = "utterance"):
     if kind == "utterance":
         df = pd.DataFrame(data)
         for row in df.itertuples():
@@ -197,6 +197,40 @@ def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
     return "".join(html_parts)
 
 
+def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
+    if kind == "utterance":
+        df = pd.DataFrame(data)
+        df["distortions"] = df["utterance"].apply(
+            lambda x: ", ".join([d["distortion"] for d in detect_distortions(x)]) or "None"
+        )
+
+        main_figs = create_sentiment_dashboard_plotly(df)
+        circ_fig = create_circumplex_plot(df)
+
+        html_parts = [
+            f"<h3>Model: {model_name}</h3>",
+            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance','distortions']].to_string(index=False)}</pre></p>",
+            main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
+            main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
+            main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
+            circ_fig.to_html(full_html=False, include_plotlyjs=False)
+        ]
+
+    elif kind == "summary":
+        df = pd.DataFrame([s.__dict__ if isinstance(s, SentimentSummary) else s for s in data])
+        summary_figs = create_emotion_dashboard_plotly(df)
+        html_parts = [
+            f"<h3>Model: {model_name}</h3>",
+            summary_figs['box'].to_html(full_html=False, include_plotlyjs='cdn'),
+            summary_figs['mean_std'].to_html(full_html=False, include_plotlyjs=False),
+            summary_figs['range_bar'].to_html(full_html=False, include_plotlyjs=False)
+        ]
+    else:
+        html_parts = ["<p>Unsupported data type</p>"]
+
+    return "".join(html_parts)
+
+
 @app.get("/dashboard_all", response_class=HTMLResponse)
 def dashboard_all_models():
     from SentimentSuite import analysis_store  # Import locally to avoid circular issues
@@ -232,16 +266,22 @@ def dashboard_all_models():
         body {{ background:#1a1a1a; color:white; font-family:sans-serif; }}
         .tab-button {{ margin:5px; padding:10px; background:#2d2d2d; border:none; color:white; cursor:pointer; }}
         .tab-button:hover {{ background:#444; }}
-        .tab-content {{ padding: 20px; background:#0d0c1d; margin-top: 10px; border-radius: 10px; }}
+        .tab-content {{ padding: 20px; background:#0d0c1d; margin-top: 10px; border-radius: 10px; max-width: 95vw; overflow-x: auto; }}
         pre {{ white-space: pre-wrap; word-wrap: break-word; }}
+        .dashboard-button {{ margin-top: 20px; display: inline-block; padding: 12px 24px; background: #ff00ff; color: white; border: none; border-radius: 8px; text-decoration: none; font-weight: bold; }}
+        .dashboard-button:hover {{ background: #ff33ff; }}
         </style></head>
         <body>
         <h1>SentimentSuite Dashboard</h1>
         <div>{buttons}</div>
+        <div style='margin-top:30px;'>
+            <a href="/upload-csv" class="dashboard-button">Upload New CSV</a>
+        </div>
         {''.join(tabs_html)}
         {script}
         </body></html>
     """)
+
 
 # Global classifiers are now available.
 classifier = pipeline(
