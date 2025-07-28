@@ -495,13 +495,15 @@ async def upload_form():
                     <div id="results"></div>
                     <a id="viewDashboard" class="view-dashboard">View Dashboard</a>
                 </div>
+                <a id="viewDashboard" class="view-dashboard" href="/dashboard_all">View Full Dashboard</a>
+
                 <script>
                     document.getElementById('uploadForm').onsubmit = async (e) => {
                         e.preventDefault();
                         const formData = new FormData(e.target);
                         const method = formData.get('method');
                         let endpoint = '';
-                        
+                
                         switch(method) {
                             case 'bart':
                                 endpoint = '/analyze/bart';
@@ -513,7 +515,7 @@ async def upload_form():
                                 endpoint = '/upload-csv';
                                 break;
                         }
-                        
+                
                         try {
                             const response = await fetch(endpoint, {
                                 method: 'POST',
@@ -522,10 +524,8 @@ async def upload_form():
                             const data = await response.json();
                             document.getElementById('results').innerHTML = 
                                 '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                            
-                            // Show dashboard link
+                            // Show dashboard links
                             const dashboardLink = document.getElementById('viewDashboard');
-                            dashboardLink.href = `/dashboard/${method}`;
                             dashboardLink.style.display = 'inline-block';
                         } catch (error) {
                             document.getElementById('results').innerHTML = 
