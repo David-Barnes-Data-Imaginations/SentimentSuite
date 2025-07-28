@@ -3,8 +3,6 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 import requests
 import os
 import torch
-
-from starlette.responses import HTMLResponse
 import matplotlib
 matplotlib.use('Agg')
 from transformers import pipeline
@@ -20,6 +18,7 @@ from valence_circumplex_plot import create_circumplex_plot
 from sentiment_dashboard_tabs import build_dashboard_tabbed
 from circumplex_plot import create_circumplex_plot
 from distortion_detection import detect_distortions
+from fastapi.responses import HTMLResponse
 
 torch.set_float32_matmul_precision('high')
 # Updated the Sentiment2D class with
@@ -154,8 +153,53 @@ def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
     return "".join(html_parts)
 
 
+
+
+class SentimentSummary(BaseModel):
+    emotion: str
+    mean: float
+    std: float
+    max_val: float
+    min_val: float
+
+def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
+    if kind == "utterance":
+        df = pd.DataFrame(data)
+        for row in df.itertuples():
+            distortions = detect_distortions(row.utterance)
+            df.at[row.Index, "distortions"] = ", ".join([d["distortion"] for d in distortions]) if distortions else "None"
+
+        main_figs = create_sentiment_dashboard_plotly(df)
+        circ_fig = create_circumplex_plot(df)
+
+        html_parts = [
+            f"<h3>Model: {model_name}</h3>",
+            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance','distortions']].to_string(index=False)}</pre></p>",
+            main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
+            main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
+            main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
+            circ_fig.to_html(full_html=False, include_plotlyjs=False)
+        ]
+
+    elif kind == "summary":
+        df = pd.DataFrame([s.__dict__ if isinstance(s, SentimentSummary) else s for s in data])
+        summary_figs = create_emotion_dashboard_plotly(df)
+        html_parts = [
+            f"<h3>Model: {model_name}</h3>",
+            summary_figs['box'].to_html(full_html=False, include_plotlyjs='cdn'),
+            summary_figs['mean_std'].to_html(full_html=False, include_plotlyjs=False),
+            summary_figs['range_bar'].to_html(full_html=False, include_plotlyjs=False)
+        ]
+
+    else:
+        html_parts = ["<p>Unsupported data type</p>"]
+
+    return "".join(html_parts)
+
+
 @app.get("/dashboard_all", response_class=HTMLResponse)
 def dashboard_all_models():
+    from SentimentSuite import analysis_store  # Import locally to avoid circular issues
     tabs_html = []
     for model_name, result_data in analysis_store.results.items():
         if not result_data:
@@ -197,7 +241,7 @@ def dashboard_all_models():
         {''.join(tabs_html)}
         {script}
         </body></html>
-    """, status_code=200)
+    """)
 
 # Global classifiers are now available.
 classifier = pipeline(

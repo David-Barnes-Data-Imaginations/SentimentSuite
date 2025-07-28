@@ -45,7 +45,7 @@ You can install them with:
        uvicorn SentimentSuite:app --reload --port 8000
        ```
 
-4. Upload your data. Navigate to `http://localhost:8000/dashboard-all` and upload a CSV file with an utterance column 
+4. Upload your data at . Navigate to `http://localhost:8000/dashboard-all` and upload a CSV file with an utterance column 
 - I've added two examples you can use, the utterances of 'Delamain' from 'Cyberpunk 2077'). 
 - I've added the 'go-to' Psychology transcript of Carl and Gloria though i need to have my smolagent tidy it for me to the correct CSV format
 5. Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
