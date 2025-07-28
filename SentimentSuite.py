@@ -4,6 +4,7 @@ import requests
 import os
 import torch
 import matplotlib
+
 matplotlib.use('Agg')
 from transformers import pipeline
 import pandas as pd
@@ -14,13 +15,15 @@ import io
 from typing import Any, Optional
 from datetime import datetime
 from enhanced_visualisation import create_sentiment_dashboard_plotly, create_emotion_dashboard_plotly
-from valence_circumplex_plot import create_circumplex_plot
+# from valence_circumplex_plot import create_circumplex_plot
 from sentiment_dashboard_tabs import build_dashboard_tabbed
 from circumplex_plot import create_circumplex_plot
 from distortion_detection import detect_distortions
 from fastapi.responses import HTMLResponse
 
 torch.set_float32_matmul_precision('high')
+
+
 # Updated the Sentiment2D class with
 # more emotions and patterns
 class Sentiment2D:
@@ -54,7 +57,7 @@ class Sentiment2D:
             'system': (0.0, -0.3),
             'leave': (-0.2, 0.1)
         }
-        
+
         # Enhanced pattern matching
         self.patterns = {}
         for emotion in self.emotion_map:
@@ -68,36 +71,36 @@ class Sentiment2D:
         """
         scores = {}
         utterance.lower().split()
-        
+
         # Initialize all emotions with a small baseline value
         for emotion in self.emotion_map:
             scores[emotion] = 0.01  # Small baseline to avoid complete neutrality
-            
+
         for emotion, pattern in self.patterns.items():
             # Count occurrences and weight them
             count = len(pattern.findall(utterance))
             if count > 0:
                 scores[emotion] = count * 0.5  # Weight the matches
-        
+
         # Normalize scores
         total = sum(scores.values())
-        return {k: v/total for k, v in scores.items()}
+        return {k: v / total for k, v in scores.items()}
 
     def get_utterance_valence_arousal(self, utterance: str) -> Tuple[float, float]:
         """Calculate valence and arousal with improved weighting"""
         scores = self.get_utterance_class_scores(utterance)
-        
+
         valence = 0.0
         arousal = 0.0
         total_weight = 0.0
-        
+
         for emotion, score in scores.items():
             v, a = self.emotion_map[emotion]
             # Apply score as weight
             valence += v * score
             arousal += a * score
             total_weight += score
-            
+
         # Normalize and ensure non-zero output
         if total_weight > 0:
             valence = valence / total_weight
@@ -105,12 +108,13 @@ class Sentiment2D:
         else:
             valence = 0.0
             arousal = 0.0
-            
+
         return (valence, arousal)
 
     def __call__(self, utterance: str) -> Tuple[float, float]:
         """Process the utterance and return valence-arousal pair"""
         return self.get_utterance_valence_arousal(utterance)
+
 
 # Set environment variable before importing torch
 os.environ["TORCHINDUCTOR_DISABLE"] = "1"
@@ -127,14 +131,15 @@ def build_dashboard_tabbed(model_name: str, data: object, kind: str = "utterance
         df = pd.DataFrame(data)
         for row in df.itertuples():
             distortions = detect_distortions(row.utterance)
-            df.at[row.Index, "distortions"] = ", ".join([d["distortion"] for d in distortions]) if distortions else "None"
+            df.at[row.Index, "distortions"] = ", ".join(
+                [d["distortion"] for d in distortions]) if distortions else "None"
 
         main_figs = create_sentiment_dashboard_plotly(df)
         circ_fig = create_circumplex_plot(df)
 
         html_parts = [
             f"<h3>Model: {model_name}</h3>",
-            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance','distortions']].to_string(index=False)}</pre></p>",
+            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance', 'distortions']].to_string(index=False)}</pre></p>",
             main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
             main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
             main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
@@ -153,8 +158,6 @@ def build_dashboard_tabbed(model_name: str, data: object, kind: str = "utterance
     return "".join(html_parts)
 
 
-
-
 class SentimentSummary(BaseModel):
     emotion: str
     mean: float
@@ -162,19 +165,21 @@ class SentimentSummary(BaseModel):
     max_val: float
     min_val: float
 
+
 def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
     if kind == "utterance":
         df = pd.DataFrame(data)
         for row in df.itertuples():
             distortions = detect_distortions(row.utterance)
-            df.at[row.Index, "distortions"] = ", ".join([d["distortion"] for d in distortions]) if distortions else "None"
+            df.at[row.Index, "distortions"] = ", ".join(
+                [d["distortion"] for d in distortions]) if distortions else "None"
 
         main_figs = create_sentiment_dashboard_plotly(df)
         circ_fig = create_circumplex_plot(df)
 
         html_parts = [
             f"<h3>Model: {model_name}</h3>",
-            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance','distortions']].to_string(index=False)}</pre></p>",
+            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance', 'distortions']].to_string(index=False)}</pre></p>",
             main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
             main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
             main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
@@ -209,7 +214,7 @@ def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
 
         html_parts = [
             f"<h3>Model: {model_name}</h3>",
-            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance','distortions']].to_string(index=False)}</pre></p>",
+            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance', 'distortions']].to_string(index=False)}</pre></p>",
             main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
             main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
             main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
@@ -233,55 +238,152 @@ def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
 
 @app.get("/dashboard_all", response_class=HTMLResponse)
 def dashboard_all_models():
-    from SentimentSuite import analysis_store  # Import locally to avoid circular issues
+    from SentimentSuite import analysis_store
     tabs_html = []
+
     for model_name, result_data in analysis_store.results.items():
         if not result_data:
             continue
         kind = "utterance" if model_name in ["bart", "nous-hermes"] else "summary"
         tab_html = build_dashboard_tabbed(model_name, result_data, kind)
-        tabs_html.append(f"<div class='tab-content' id='{model_name}' style='display:none'>{tab_html}</div>")
+        tabs_html.append(f'''
+            <div class='tab-content' id='{model_name}' style='display:none'>
+                <div class="tab-container">
+                    {tab_html}
+                </div>
+            </div>
+        ''')
 
     buttons = "".join([
         f"<button class='tab-button' onclick=\"showTab('{model}')\">{model.title()}</button>"
         for model in analysis_store.results if analysis_store.results[model]
     ])
 
-    script = """
-    <script>
-        function showTab(id) {
-            document.querySelectorAll('.tab-content').forEach(div => div.style.display = 'none');
-            document.getElementById(id).style.display = 'block';
-        }
-        window.onload = () => {
-            const firstTab = document.querySelector('.tab-content');
-            if (firstTab) firstTab.style.display = 'block';
-        }
-    </script>
-    """
-
     return HTMLResponse(content=f"""
-        <html><head>
-        <style>
-        body {{ background:#1a1a1a; color:white; font-family:sans-serif; }}
-        .tab-button {{ margin:5px; padding:10px; background:#2d2d2d; border:none; color:white; cursor:pointer; }}
-        .tab-button:hover {{ background:#444; }}
-        .tab-content {{ padding: 20px; background:#0d0c1d; margin-top: 10px; border-radius: 10px; max-width: 95vw; overflow-x: auto; }}
-        pre {{ white-space: pre-wrap; word-wrap: break-word; }}
-        .dashboard-button {{ margin-top: 20px; display: inline-block; padding: 12px 24px; background: #ff00ff; color: white; border: none; border-radius: 8px; text-decoration: none; font-weight: bold; }}
-        .dashboard-button:hover {{ background: #ff33ff; }}
-        </style></head>
+        <html>
+        <head>
+            <title>SentimentSuite Dashboard</title>
+            <style>
+                body {{ 
+                    background:#1a1a1a; 
+                    color:white; 
+                    font-family:sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                }}
+                .tab-button {{ 
+                    margin:5px; 
+                    padding:10px 20px; 
+                    background:#2d2d2d; 
+                    border:none; 
+                    color:white; 
+                    cursor:pointer;
+                    border-radius: 5px;
+                }}
+                .tab-button:hover {{ background:#444; }}
+                .tab-button.active {{ background:#4a4a8e; }}
+                .tab-content {{ 
+                    padding: 20px; 
+                    background:#0d0c1d; 
+                    margin-top: 10px; 
+                    border-radius: 10px;
+                    width: 100%;
+                }}
+                .js-plotly-plot {{ 
+                    width: 100% !important; 
+                    height: 600px !important;
+                }}
+                pre {{ 
+                    white-space: pre-wrap; 
+                    word-wrap: break-word;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    background: #2d2d2d;
+                    padding: 10px;
+                    border-radius: 5px;
+                }}
+                .dashboard-button {{ 
+                    margin-top: 20px; 
+                    display: inline-block; 
+                    padding: 12px 24px; 
+                    background: #2196F3; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 8px; 
+                    text-decoration: none; 
+                    font-weight: bold; 
+                }}
+                .dashboard-button:hover {{ background: #1976D2; }}
+            </style>
+        </head>
         <body>
-        <h1>SentimentSuite Dashboard</h1>
-        <div>{buttons}</div>
-        <div style='margin-top:30px;'>
-            <a href="/upload-csv" class="dashboard-button">Upload New CSV</a>
-        </div>
-        {''.join(tabs_html)}
-        {script}
-        </body></html>
-    """)
+            <h1>SentimentSuite Dashboard</h1>
+            <div class="tab-buttons">{buttons}</div>
+            <div style='margin-top:30px;'>
+                <a href="/upload-csv" class="dashboard-button">Upload New CSV</a>
+            </div>
+            <div class="tab-container">{''.join(tabs_html)}</div>
 
+            <script>
+                function showTab(id) {{
+                    // Update buttons
+                    document.querySelectorAll('.tab-button').forEach(btn => {{
+                        if (btn.textContent.toLowerCase() === id) {{
+                            btn.classList.add('active');
+                        }} else {{
+                            btn.classList.remove('active');
+                        }}
+                    }});
+
+                    // Update content
+                    document.querySelectorAll('.tab-content').forEach(div => {{
+                        div.style.display = 'none';
+                    }});
+                    const tab = document.getElementById(id);
+                    if (tab) {{
+                        tab.style.display = 'block';
+                        // Trigger Plotly to resize
+                        const plots = tab.getElementsByClassName('js-plotly-plot');
+                        for (let plot of plots) {{
+                            if (window.Plotly) {{
+                                Plotly.relayout(plot, {{
+                                    'xaxis.autorange': true,
+                                    'yaxis.autorange': true,
+                                    'width': plot.offsetWidth,
+                                    'height': 600
+                                }});
+                            }}
+                        }}
+                    }}
+                }}
+
+                // Initialize first tab
+                window.onload = () => {{
+                    const firstButton = document.querySelector('.tab-button');
+                    if (firstButton) {{
+                        showTab(firstButton.textContent.toLowerCase());
+                    }}
+                }};
+
+                // Handle window resize
+                window.addEventListener('resize', () => {{
+                    const activeTab = document.querySelector('.tab-content[style*="block"]');
+                    if (activeTab) {{
+                        const plots = activeTab.getElementsByClassName('js-plotly-plot');
+                        for (let plot of plots) {{
+                            if (window.Plotly) {{
+                                Plotly.relayout(plot, {{
+                                    'width': plot.offsetWidth,
+                                    'height': 600
+                                }});
+                            }}
+                        }}
+                    }}
+                }});
+            </script>
+        </body>
+        </html>
+    """)
 
 # Global classifiers are now available.
 classifier = pipeline(
@@ -291,12 +393,14 @@ classifier = pipeline(
     device=0 if torch.cuda.is_available() else -1
 )
 
+
 class SentimentSummary(BaseModel):
     emotion: str
     mean: float
     std: float
     max_val: float
     min_val: float
+
 
 # Add this class to store analysis results
 class AnalysisResults:
@@ -312,15 +416,16 @@ analysis_store.results = {
     'nous-hermes': []
 }
 
+
 # Modify analysis endpoints to store results
 @app.post("/analyze/bart")
 def analyze_bart(file: UploadFile = File(...)):
     content = file.file.read()
     df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
     results = []
-    
+
     utterances = df["utterance"].iloc[1:] if df["utterance"].iloc[0].lower() == "utterance" else df["utterance"]
-    
+
     for utt in utterances:
         valence, arousal = sentiment2d(utt)
         results.append({
@@ -328,21 +433,22 @@ def analyze_bart(file: UploadFile = File(...)):
             "valence": round(valence, 3),
             "arousal": round(arousal, 3)
         })
-    
+
     # Store the results
     analysis_store.results['bart'] = results
     analysis_store.timestamp = datetime.now()
     return results
+
 
 @app.post("/analyze/nous-hermes")
 def analyze_nous_hermes(file: UploadFile = File(...)):
     content = file.file.read()
     df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
     results = []
-    
+
     # Skip the header row if it exists
     utterances = df["utterance"].iloc[1:] if df["utterance"].iloc[0].lower() == "utterance" else df["utterance"]
-    
+
     for utt in utterances:
         try:
             # First try the Nous-Hermes server
@@ -351,7 +457,7 @@ def analyze_nous_hermes(file: UploadFile = File(...)):
                 "temperature": 0.7,
                 "max_tokens": 200
             }
-            
+
             try:
                 # Try to connect to Nous-Hermes with a short timeout
                 response = requests.post(
@@ -380,79 +486,21 @@ def analyze_nous_hermes(file: UploadFile = File(...)):
                 "model": "error",
                 "error": str(e)
             })
-    
+
     # Store the results before returning
     analysis_store.results['nous-hermes'] = results
     analysis_store.timestamp = datetime.now()
     return results
-
-@app.post("/upload-csv", response_model=List[SentimentSummary])
-async def upload_csv(file: UploadFile = File(...)):
-    try:
-        # Read CSV into dataframe
-        content = await file.read()
-        df = pd.read_csv(io.StringIO(content.decode("utf-8")))
-
-        # Collect all top-k emotion scores
-        all_scores = {}
-        for row in df["utterance"]:  # Make sure this matches your CSV column name when using your own files
-            try:
-                outputs = classifier(row)[0]
-                for item in outputs:
-                    label = item["label"]
-                    score = item["score"]
-                    if label not in all_scores:
-                        all_scores[label] = []
-                    all_scores[label].append(score)
-            except Exception as e:
-                print(f"Error processing row: {row}, Error: {str(e)}")
-                continue
-
-        # Build the stats table with safety checks
-        summary = []
-        for emotion, values in all_scores.items():
-            if values:  # Only process if we have values
-                series = pd.Series(values)
-                try:
-                    # Handle potential inf/nan values
-                    mean_val = float(series.mean()) if not pd.isna(series.mean()) else 0.0
-                    std_val = float(series.std()) if not pd.isna(series.std()) else 0.0
-                    max_val = float(series.max()) if not pd.isna(series.max()) else 0.0
-                    min_val = float(series.min()) if not pd.isna(series.min()) else 0.0
-                    
-                    # Ensure values are within JSON-compatible range
-                    if all(abs(x) < 1e308 for x in [mean_val, std_val, max_val, min_val]):
-                        summary.append(SentimentSummary(
-                            emotion=emotion,
-                            mean=mean_val,
-                            std=std_val,
-                            max_val=max_val,
-                            min_val=min_val
-                        ))
-                except Exception as e:
-                    print(f"Error calculating stats for emotion {emotion}: {str(e)}")
-                    continue
-
-        if not summary:
-            return []  # Return empty list instead of raising an error
-
-        # Store the results before returning
-        analysis_store.results['modernbert'] = summary
-        analysis_store.timestamp = datetime.now()
-        return summary
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/analyze/bart")
 def analyze_bart(file: UploadFile = File(...)):
     content = file.file.read()
     df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
     results = []
-    
+
     # Skip the header row if it exists
     utterances = df["utterance"].iloc[1:] if df["utterance"].iloc[0].lower() == "utterance" else df["utterance"]
-    
+
     for utt in utterances:
         valence, arousal = sentiment2d(utt)
         distortions = detect_distortions(utt)
@@ -464,17 +512,16 @@ def analyze_bart(file: UploadFile = File(...)):
         })
     return results
 
-
 @app.get("/upload-csv", response_class=HTMLResponse)
 async def upload_form():
     return '''
         <html>
             <head>
                 <style>
-                    body { 
-                        font-family: Arial, sans-serif; 
-                        max-width: 800px; 
-                        margin: 0 auto; 
+                    body {
+                        font-family: Arial, sans-serif;
+                        max-width: 800px;
+                        margin: 0 auto;
                         padding: 20px;
                         background: #1a1a1a;
                         color: white;
@@ -506,15 +553,20 @@ async def upload_form():
                         background: #3d3d3d;
                         border-radius: 5px;
                         white-space: pre-wrap;
+                        max-height: 300px;
+                        overflow-y: auto;
                     }
                     .view-dashboard {
-                        display: none;
-                        margin-top: 10px;
+                        display: inline-block;
+                        margin: 10px 0;
                         padding: 10px 20px;
                         background-color: #2196F3;
                         color: white;
                         text-decoration: none;
                         border-radius: 5px;
+                    }
+                    .button-container {
+                        margin: 20px 0;
                     }
                 </style>
             </head>
@@ -530,12 +582,13 @@ async def upload_form():
                         <br>
                         <input name="file" type="file" accept=".csv">
                         <br>
-                        <button type="submit" class="submit-btn">Upload and Analyze</button>
+                        <div class="button-container">
+                            <button type="submit" class="submit-btn">Upload and Analyze</button>
+                            <a href="/dashboard_all" class="view-dashboard">View Dashboard</a>
+                        </div>
                     </form>
                     <div id="results"></div>
-                    <a id="viewDashboard" class="view-dashboard">View Dashboard</a>
                 </div>
-                <a id="viewDashboard" class="view-dashboard" href="/dashboard_all">View Full Dashboard</a>
 
                 <script>
                     document.getElementById('uploadForm').onsubmit = async (e) => {
@@ -543,32 +596,23 @@ async def upload_form():
                         const formData = new FormData(e.target);
                         const method = formData.get('method');
                         let endpoint = '';
-                
+
                         switch(method) {
-                            case 'bart':
-                                endpoint = '/analyze/bart';
-                                break;
-                            case 'nous-hermes':
-                                endpoint = '/analyze/nous-hermes';
-                                break;
-                            case 'modernbert':
-                                endpoint = '/upload-csv';
-                                break;
+                            case 'bart': endpoint = '/analyze/bart'; break;
+                            case 'nous-hermes': endpoint = '/analyze/nous-hermes'; break;
+                            case 'modernbert': endpoint = '/upload-csv-process'; break;
                         }
-                
+
                         try {
                             const response = await fetch(endpoint, {
                                 method: 'POST',
                                 body: formData
                             });
                             const data = await response.json();
-                            document.getElementById('results').innerHTML = 
+                            document.getElementById('results').innerHTML =
                                 '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-                            // Show dashboard links
-                            const dashboardLink = document.getElementById('viewDashboard');
-                            dashboardLink.style.display = 'inline-block';
                         } catch (error) {
-                            document.getElementById('results').innerHTML = 
+                            document.getElementById('results').innerHTML =
                                 '<p style="color: red;">Error: ' + error.message + '</p>';
                         }
                     };
@@ -577,15 +621,65 @@ async def upload_form():
         </html>
     '''
 
+@app.post("/upload-csv-process", response_model=List[SentimentSummary])
+async def upload_csv_process(file: UploadFile = File(...)):
+    try:
+        content = await file.read()
+        df = pd.read_csv(io.StringIO(content.decode("utf-8")))
+
+        all_scores = {}
+        for row in df["utterance"]:
+            try:
+                outputs = classifier(row)[0]
+                for item in outputs:
+                    label = item["label"]
+                    score = item["score"]
+                    all_scores.setdefault(label, []).append(score)
+            except Exception as e:
+                print(f"Error processing row: {row}, Error: {str(e)}")
+                continue
+
+        summary = []
+        for emotion, values in all_scores.items():
+            if values:
+                series = pd.Series(values)
+                try:
+                    mean_val = float(series.mean())
+                    std_val = float(series.std())
+                    max_val = float(series.max())
+                    min_val = float(series.min())
+                    if all(abs(x) < 1e308 for x in [mean_val, std_val, max_val, min_val]):
+                        summary.append(SentimentSummary(
+                            emotion=emotion,
+                            mean=mean_val,
+                            std=std_val,
+                            max_val=max_val,
+                            min_val=min_val
+                        ))
+                except Exception as e:
+                    print(f"Error calculating stats for emotion {emotion}: {str(e)}")
+                    continue
+
+        if not summary:
+            return []
+
+        analysis_store.results['modernbert'] = summary
+        analysis_store.timestamp = datetime.now()
+        return summary
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def create_sentiment_dashboard(data):
     import matplotlib.pyplot as plt
     import seaborn as sns
     import numpy as np
-    
+
     # Create figure
     fig = plt.figure(figsize=(15, 10))
     gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
-    
+
     # Convert data to DataFrame if it's not already
     if not isinstance(data, pd.DataFrame):
         df = pd.DataFrame([
@@ -597,58 +691,59 @@ def create_sentiment_dashboard(data):
         ])
     else:
         df = data
-    
+
     # 1. Valence-Arousal Scatter Plot
     ax1 = fig.add_subplot(gs[0, :])
-    scatter = ax1.scatter(df['valence'], df['arousal'], 
-                         c=np.arange(len(df)), cmap='viridis',
-                         s=100)
+    scatter = ax1.scatter(df['valence'], df['arousal'],
+                          c=np.arange(len(df)), cmap='viridis',
+                          s=100)
     ax1.set_title('Valence-Arousal Space')
     ax1.set_xlabel('Valence')
     ax1.set_ylabel('Arousal')
-    
+
     # Set specific axis limits
     ax1.set_xlim(-0.37, 0.28)
     ax1.set_ylim(df['arousal'].min() - 0.1, df['arousal'].max() + 0.1)
-    
+
     ax1.axhline(y=0, color='gray', linestyle='-', alpha=0.3)
     ax1.axvline(x=0, color='gray', linestyle='-', alpha=0.3)
-    
+
     # Add colorbar
     cbar = plt.colorbar(scatter, ax=ax1)
     cbar.set_label('Utter')
-    
+
     # Add tooltips with smaller font and adjusted position
     for i, txt in enumerate(df['utterance']):
         shortened_text = txt[:20] + '...' if len(txt) > 20 else txt
-        ax1.annotate(shortened_text, 
-                    (df['valence'].iloc[i], df['arousal'].iloc[i]),
-                    xytext=(5, 5), textcoords='offset points',
-                    fontsize=8,  # Smaller font size
-                    alpha=0.8,
-                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
-    
+        ax1.annotate(shortened_text,
+                     (df['valence'].iloc[i], df['arousal'].iloc[i]),
+                     xytext=(5, 5), textcoords='offset points',
+                     fontsize=8,  # Smaller font size
+                     alpha=0.8,
+                     bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+
     # 2. Valence Distribution
     ax2 = fig.add_subplot(gs[1, 0])
     sns.histplot(data=df, x='valence', kde=True, ax=ax2)
     ax2.set_title('Valence Distribution')
-    
+
     # 3. Arousal Distribution
     ax3 = fig.add_subplot(gs[1, 1])
     sns.histplot(data=df, x='arousal', kde=True, ax=ax3)
     ax3.set_title('Arousal Distribution')
-    
+
     plt.tight_layout()
     return fig
+
 
 def create_emotion_dashboard(data):
     import matplotlib.pyplot as plt
     import seaborn as sns
-    
+
     # Create figure
     fig = plt.figure(figsize=(15, 10))
     gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
-    
+
     # Convert data to DataFrame if it's not already
     if not isinstance(data, pd.DataFrame):
         df = pd.DataFrame([
@@ -662,31 +757,31 @@ def create_emotion_dashboard(data):
         ])
     else:
         df = data
-    
+
     # 1. Boxplot of emotion statistics
     ax1 = fig.add_subplot(gs[0, :])
-    df_melted = pd.melt(df, id_vars=['emotion'], 
+    df_melted = pd.melt(df, id_vars=['emotion'],
                         value_vars=['mean', 'std', 'max_val', 'min_val'])
-    sns.boxplot(data=df_melted, x='emotion', y='value', 
+    sns.boxplot(data=df_melted, x='emotion', y='value',
                 hue='variable', ax=ax1)
     ax1.set_title('Distribution of Emotion Statistics')
     ax1.set_xticklabels(ax1.get_xticklabels(), rotation=45)
-    
+
     # 2. Mean vs Std scatter with adjusted legend
     ax2 = fig.add_subplot(gs[1, 0])
     scatter = sns.scatterplot(data=df, x='mean', y='std', ax=ax2,
-                            s=100, hue='emotion')
+                              s=100, hue='emotion')
     # Move legend outside the plot
     ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
     ax2.set_title('Mean vs Standard Deviation')
-    
+
     # 3. Range plot
     ax3 = fig.add_subplot(gs[1, 1])
     df['range'] = df['max_val'] - df['min_val']
     sns.barplot(data=df, x='emotion', y='range', ax=ax3)
     ax3.set_title('Emotion Range (Max - Min)')
     ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45)
-    
+
     plt.tight_layout()
     return fig
 
@@ -695,20 +790,21 @@ def create_emotion_dashboard(data):
 @app.get("/dashboard/{analysis_type}")
 async def get_dashboard(analysis_type: str):
     if analysis_type not in analysis_store.results:
-        raise HTTPException(status_code=404, detail=f"No {analysis_type} analysis results found. Please run analysis first.")
-    
+        raise HTTPException(status_code=404,
+                            detail=f"No {analysis_type} analysis results found. Please run analysis first.")
+
     # Get the latest analysis results
     if analysis_type == "modernbert":
         fig = create_emotion_dashboard(analysis_store.results[analysis_type])
     else:  # bart or nous-hermes
         fig = create_sentiment_dashboard(analysis_store.results[analysis_type])
-    
+
     # Convert plot to base64 string
     buf = io.BytesIO()
     fig.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
     plot_url = base64.b64encode(buf.getvalue()).decode()
-    
+
     # Create HTML with timestamp
     timestamp_str = analysis_store.timestamp.strftime("%Y-%m-%d %H:%M:%S") if analysis_store.timestamp else "Unknown"
     html_content = f'''
@@ -751,6 +847,8 @@ async def get_dashboard(analysis_type: str):
         </html>
     '''
     return HTMLResponse(content=html_content)
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_home():
     return '''

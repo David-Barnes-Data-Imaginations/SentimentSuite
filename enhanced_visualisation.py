@@ -149,93 +149,116 @@ def _prepare_emotion_dataframe(data: Union[pd.DataFrame, Iterable[Any]]) -> pd.D
     return pd.DataFrame(rows)
 
 
-def create_sentiment_dashboard_plotly(
-    data: Union[pd.DataFrame, Iterable[Dict[str, Any]]],
-    *,
-    palette: List[str] = CYBERPUNK_PALETTE,
-) -> Dict[str, "plotly.graph_objs._figure.Figure"]:
-    """Create interactive Plotly figures for valence/arousal analysis.
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-    Parameters
-    ----------
-    data : pandas.DataFrame or iterable of dict
-        Must contain ``utterance``, ``valence`` and ``arousal`` columns/keys.
-    palette : list of str, optional
-        A list of hex colour codes defining the discrete palette used for
-        chart elements.  Defaults to ``CYBERPUNK_PALETTE``.
+# A modern, cyberpunk-inspired color palette
+CYBERPUNK_PALETTE = ["#FF37A6", "#8E57FF", "#00B7FF", "#34D399", "#F5A623"]
+PLOTLY_DARK_TEMPLATE = "plotly_dark"
+PAPER_BG_COLOR = "#0d0c1d"
+FONT_COLOR = "#F5F5F5"
 
-    Returns
-    -------
-    dict
-        A dictionary with keys ``scatter``, ``valence_hist`` and
-        ``arousal_hist`` mapping to Plotly Figure objects.
+def _prepare_sentiment_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Prepare DataFrame for sentiment plotting."""
+    df_out = df.copy()
+    if 'valence' not in df_out.columns or 'arousal' not in df_out.columns:
+        raise ValueError("DataFrame must contain 'valence' and 'arousal' columns.")
+    df_out["color_idx"] = pd.factorize(df_out.get("speaker", df_out.index))[0]
+    return df_out
+
+def _prepare_emotion_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Prepare DataFrame for emotion plotting."""
+    if not all(col in df.columns for col in ['emotion', 'mean', 'std', 'min_val', 'max_val']):
+        raise ValueError("DataFrame is missing required emotion statistics columns.")
+    df_out = df.copy()
+    df_out['range'] = df_out['max_val'] - df_out['min_val']
+    return df_out
+
+def create_sentiment_dashboard_plotly(df: pd.DataFrame, show_text: bool = False):
     """
-    df = _prepare_sentiment_dataframe(data)
+    Creates a multi-plot dashboard for sentiment analysis using Plotly.
+    """
+    df = _prepare_sentiment_dataframe(df)
 
-    # Create an index column so that colours can be assigned uniquely.
-    df = df.reset_index(drop=True)
-    df["idx"] = df.index
+    # Ensure hover text is always available
+    hover_text = df['utterance']
 
-    # Scatter plot of valence vs arousal with tooltips showing the utterance.
+    # Scatter plot for Valence-Arousal
     scatter_fig = px.scatter(
         df,
-        x="valence",
-        y="arousal",
-        text="utterance",
-        color="idx",
-        color_continuous_scale=palette,
-        title="Valence‑Arousal Space",
-        labels={"valence": "Valence", "arousal": "Arousal", "idx": "Utterance"},
+        x='valence',
+        y='arousal',
+        title='Valence-Arousal Space',
+        template=PLOTLY_DARK_TEMPLATE,
+        color='color_idx',
+        color_continuous_scale=CYBERPUNK_PALETTE,
+        text='utterance' if show_text else None,  # Conditionally show text
+        hover_data={"utterance": True, "valence": True, "arousal": True}
     )
     scatter_fig.update_traces(
-        marker=dict(size=9, line=dict(width=1, color="#FFFFFF")),
-        textposition="top center",
-        textfont=dict(color="#FFFFFF", size=10),
+        marker=dict(size=12, line=dict(width=1, color='white')),
+        textposition='top center'
     )
     scatter_fig.update_layout(
-        template="plotly_dark",
-        plot_bgcolor="#0d0c1d",
-        paper_bgcolor="#0d0c1d",
-        font=dict(color="#F5F5F5"),
-        coloraxis_showscale=False,
+        paper_bgcolor=PAPER_BG_COLOR,
+        plot_bgcolor=PAPER_BG_COLOR,
+        font_color=FONT_COLOR,
+        coloraxis_showscale=False
     )
 
-    # Histogram of valence values
-    valence_hist = px.histogram(
-        df,
-        x="valence",
-        nbins=max(10, int(len(df) / 4)),
-        color_discrete_sequence=[palette[0]],
-        title="Valence Distribution",
-        labels={"valence": "Valence", "count": "Count"},
-    )
-    valence_hist.update_layout(
-        template="plotly_dark",
-        plot_bgcolor="#0d0c1d",
-        paper_bgcolor="#0d0c1d",
-        font=dict(color="#F5F5F5"),
-    )
+    # Histograms for Valence and Arousal
+    valence_hist = px.histogram(df, x='valence', title='Valence Distribution', template=PLOTLY_DARK_TEMPLATE, color_discrete_sequence=[CYBERPUNK_PALETTE[0]])
+    valence_hist.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
 
-    # Histogram of arousal values
-    arousal_hist = px.histogram(
-        df,
-        x="arousal",
-        nbins=max(10, int(len(df) / 4)),
-        color_discrete_sequence=[palette[2] if len(palette) > 2 else palette[0]],
-        title="Arousal Distribution",
-        labels={"arousal": "Arousal", "count": "Count"},
-    )
-    arousal_hist.update_layout(
-        template="plotly_dark",
-        plot_bgcolor="#0d0c1d",
-        paper_bgcolor="#0d0c1d",
-        font=dict(color="#F5F5F5"),
-    )
+    arousal_hist = px.histogram(df, x='arousal', title='Arousal Distribution', template=PLOTLY_DARK_TEMPLATE, color_discrete_sequence=[CYBERPUNK_PALETTE[1]])
+    arousal_hist.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
 
     return {
         "scatter": scatter_fig,
         "valence_hist": valence_hist,
-        "arousal_hist": arousal_hist,
+        "arousal_hist": arousal_hist
+    }
+
+def create_emotion_dashboard_plotly(df: pd.DataFrame):
+    """
+    Creates a multi-plot dashboard for emotion summary using Plotly.
+    """
+    df = _prepare_emotion_dataframe(df)
+
+    # Box plot for emotion distributions
+    box_fig = px.box(
+        df, x='emotion', y='mean',
+        title='Emotion Mean Distribution',
+        template=PLOTLY_DARK_TEMPLATE,
+        color_discrete_sequence=CYBERPUNK_PALETTE
+    )
+    box_fig.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
+
+    # Bar chart for Mean and Std Dev
+    mean_std_fig = go.Figure(data=[
+        go.Bar(name='Mean', x=df['emotion'], y=df['mean'], marker_color=CYBERPUNK_PALETTE[1]),
+        go.Bar(name='Std Dev', x=df['emotion'], y=df['std'], marker_color=CYBERPUNK_PALETTE[2])
+    ])
+    mean_std_fig.update_layout(
+        barmode='group', title='Mean and Std Dev of Emotions',
+        template=PLOTLY_DARK_TEMPLATE, paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR
+    )
+
+    # Bar chart for emotion ranges
+    range_bar_fig = px.bar(
+        df, x='emotion', y='range',
+        title='Emotion Value Range (Max - Min)',
+        template=PLOTLY_DARK_TEMPLATE,
+        color_discrete_sequence=[CYBERPUNK_PALETTE[3]]
+    )
+    range_bar_fig.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
+
+    return {
+        "box": box_fig,
+        "mean_std": mean_std_fig,
+        "range_bar": range_bar_fig
     }
 
 

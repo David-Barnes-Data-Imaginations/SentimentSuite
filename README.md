@@ -42,7 +42,7 @@ You can install them with:
        If you intend to run the web app with GPU support, ensure torch is installed with the appropriate CUDA version.
 3. Run the API:
        ```
-       uvicorn SentimentSuite:app --reload --port 8000
+       uvicorn SentimentSuite:app --reload --port 8000 # or whatever port e.g. 8001 if port 8000 is already taken by docker etc
        ```
 
 4. Upload your data at . Navigate to `http://localhost:8000/dashboard-all` and upload a CSV file with an utterance column 
@@ -50,7 +50,7 @@ You can install them with:
 - I've added the 'go-to' Psychology transcript of Carl and Gloria though i need to have my smolagent tidy it for me to the correct CSV format
 5. Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
 
-6. View the dashboard. After analysis completes, click “View Dashboard” (bottom of the page) to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
+6. View the dashboard. After analysis completes, click “View Dashboard” to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
 
 ## Part of a Larger Vision – The Persona‑Forge
 SentimentSuite is a small, self‑contained module within a broader project called The Persona‑Forge. The goal of the Persona‑Forge is to build detailed personality maps by combining knowledge graph technology with psychological frameworks like the Big Five, Myers–Briggs and Russell’s Circumplex. By augmenting language models with these maps, the Forge aims to create highly realistic personalities for:

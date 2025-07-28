@@ -1,8 +1,9 @@
+
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None):
+def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None, show_text: bool = False):
     """
     Create a circular Russell-style Circumplex plot with valence/arousal points.
 
@@ -12,6 +13,8 @@ def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None):
         DataFrame with columns: 'utterance', 'valence', 'arousal'.
     palette : list of str, optional
         Color palette for the points.
+    show_text : bool, optional
+        Whether to show utterance text directly on the plot. Defaults to True.
 
     Returns
     -------
@@ -19,8 +22,7 @@ def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None):
         The circular Plotly figure.
     """
     palette = palette or ["#FF37A6", "#8E57FF", "#00B7FF", "#34D399", "#F5A623"]
-    df = data.copy()
-    df = df.reset_index(drop=True)
+    df = data.copy().reset_index(drop=True)
     df["idx"] = df.index
 
     # Create the circumplex background grid
@@ -40,17 +42,15 @@ def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None):
     ))
 
     # Add axes (cross)
-    fig.add_trace(go.Scatter(
-        x=[-1, 1], y=[0, 0], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
-    fig.add_trace(go.Scatter(
-        x=[0, 0], y=[-1, 1], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
+    fig.add_trace(go.Scatter(x=[-1, 1], y=[0, 0], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
+    fig.add_trace(go.Scatter(x=[0, 0], y=[-1, 1], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
 
-    # Add data points
     fig.add_trace(go.Scatter(
         x=df["valence"],
         y=df["arousal"],
-        mode='markers+text',
-        text=df["utterance"],
+        mode='markers+text' if show_text else 'markers',
+        text=df["utterance"] if show_text else df["utterance"],
+        hoverinfo='text',
         textposition="top center",
         marker=dict(
             size=9,
