@@ -125,82 +125,12 @@ app = FastAPI()
 # Initialize Sentiment2D
 sentiment2d = Sentiment2D()
 
-
-def build_dashboard_tabbed(model_name: str, data: object, kind: str = "utterance"):
-    if kind == "utterance":
-        df = pd.DataFrame(data)
-        for row in df.itertuples():
-            distortions = detect_distortions(row.utterance)
-            df.at[row.Index, "distortions"] = ", ".join(
-                [d["distortion"] for d in distortions]) if distortions else "None"
-
-        main_figs = create_sentiment_dashboard_plotly(df)
-        circ_fig = create_circumplex_plot(df)
-
-        html_parts = [
-            f"<h3>Model: {model_name}</h3>",
-            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance', 'distortions']].to_string(index=False)}</pre></p>",
-            main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
-            main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
-            main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
-            circ_fig.to_html(full_html=False, include_plotlyjs=False)
-        ]
-
-    else:
-        df = pd.DataFrame(data)
-        summary_figs = create_emotion_dashboard_plotly(df)
-        html_parts = [
-            summary_figs['box'].to_html(full_html=False, include_plotlyjs='cdn'),
-            summary_figs['mean_std'].to_html(full_html=False, include_plotlyjs=False),
-            summary_figs['range_bar'].to_html(full_html=False, include_plotlyjs=False)
-        ]
-
-    return "".join(html_parts)
-
-
 class SentimentSummary(BaseModel):
     emotion: str
     mean: float
     std: float
     max_val: float
     min_val: float
-
-
-def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
-    if kind == "utterance":
-        df = pd.DataFrame(data)
-        for row in df.itertuples():
-            distortions = detect_distortions(row.utterance)
-            df.at[row.Index, "distortions"] = ", ".join(
-                [d["distortion"] for d in distortions]) if distortions else "None"
-
-        main_figs = create_sentiment_dashboard_plotly(df)
-        circ_fig = create_circumplex_plot(df)
-
-        html_parts = [
-            f"<h3>Model: {model_name}</h3>",
-            f"<p><strong>Distortions Detected:</strong><br><pre style='color:#ccc'>{df[['utterance', 'distortions']].to_string(index=False)}</pre></p>",
-            main_figs['scatter'].to_html(full_html=False, include_plotlyjs='cdn'),
-            main_figs['valence_hist'].to_html(full_html=False, include_plotlyjs=False),
-            main_figs['arousal_hist'].to_html(full_html=False, include_plotlyjs=False),
-            circ_fig.to_html(full_html=False, include_plotlyjs=False)
-        ]
-
-    elif kind == "summary":
-        df = pd.DataFrame([s.__dict__ if isinstance(s, SentimentSummary) else s for s in data])
-        summary_figs = create_emotion_dashboard_plotly(df)
-        html_parts = [
-            f"<h3>Model: {model_name}</h3>",
-            summary_figs['box'].to_html(full_html=False, include_plotlyjs='cdn'),
-            summary_figs['mean_std'].to_html(full_html=False, include_plotlyjs=False),
-            summary_figs['range_bar'].to_html(full_html=False, include_plotlyjs=False)
-        ]
-
-    else:
-        html_parts = ["<p>Unsupported data type</p>"]
-
-    return "".join(html_parts)
-
 
 def build_dashboard_tabbed(model_name: str, data, kind: str = "utterance"):
     if kind == "utterance":
@@ -421,18 +351,27 @@ analysis_store.results = {
 @app.post("/analyze/bart")
 def analyze_bart(file: UploadFile = File(...)):
     content = file.file.read()
-    df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
+    df = pd.read_csv(io.StringIO(content.decode("utf-8")))
+    df.columns = [c.strip().lower() for c in df.columns]
+    if "utterance" not in df.columns:
+        raise HTTPException(status_code=400, detail="CSV must contain an 'utterance' column")
+
+    speaker_col = "speaker" if "speaker" in df.columns else None
     results = []
 
-    utterances = df["utterance"].iloc[1:] if df["utterance"].iloc[0].lower() == "utterance" else df["utterance"]
-
-    for utt in utterances:
+    for _, row in df.iterrows():
+        utt = row["utterance"]
+        speaker = row[speaker_col] if speaker_col else None
         valence, arousal = sentiment2d(utt)
-        results.append({
+        record = {
             "utterance": utt,
             "valence": round(valence, 3),
-            "arousal": round(arousal, 3)
-        })
+                        "arousal": round(arousal, 3),
+        }
+        if speaker_col:
+            record["speaker"] = speaker
+        results.append(record)
+
 
     # Store the results
     analysis_store.results['bart'] = results
@@ -440,16 +379,21 @@ def analyze_bart(file: UploadFile = File(...)):
     return results
 
 
-@app.post("/analyze/nous-hermes")
 def analyze_nous_hermes(file: UploadFile = File(...)):
     content = file.file.read()
-    df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
+    df = pd.read_csv(io.StringIO(content.decode("utf-8")))
+    df.columns = [c.strip().lower() for c in df.columns]
+    if "utterance" not in df.columns:
+        raise HTTPException(status_code=400, detail="CSV must contain an 'utterance' column")
+
+    speaker_col = "speaker" if "speaker" in df.columns else None
     results = []
 
-    # Skip the header row if it exists
-    utterances = df["utterance"].iloc[1:] if df["utterance"].iloc[0].lower() == "utterance" else df["utterance"]
+    utterances = df["utterance"]
 
-    for utt in utterances:
+    for _, row in df.iterrows():
+        utt = row["utterance"]
+        speaker = row[speaker_col] if speaker_col else None
         try:
             # First try the Nous-Hermes server
             payload = {
@@ -466,51 +410,66 @@ def analyze_nous_hermes(file: UploadFile = File(...)):
                     timeout=1  # 1 second timeout
                 )
                 response_data = response.json()
-                results.append({
-                    "utterance": utt,
-                    "model": "nous-hermes",
-                    "raw_output": response_data.get("choices", [{}])[0].get("text", "")
-                })
+                record = {
+                "utterance": utt,
+                "model": "nous-hermes",
+                "raw_output": response_data.get("choices", [{}])[0].get("text", "")
+                }
+                if speaker_col:
+                    record["speaker"] = speaker
+                results.append(record)
             except (requests.exceptions.RequestException, KeyError):
+
                 # If Nous-Hermes fails, fallback to our Sentiment2D
                 valence, arousal = sentiment2d(utt)
-                results.append({
-                    "utterance": utt,
-                    "model": "sentiment2d-fallback",
-                    "valence": round(valence, 3),
-                    "arousal": round(arousal, 3)
-                })
-        except Exception as e:
-            results.append({
+                record = {
                 "utterance": utt,
-                "model": "error",
-                "error": str(e)
-            })
+                "model": "sentiment2d-fallback",
+                "valence": round(valence, 3),
+                "arousal": round(arousal, 3)
+                }
+                if speaker_col:
+                    record["speaker"] = speaker
+                results.append(record)
+        except Exception as e:
+            record = {
+            "utterance": utt,
+            "model": "error",
+            "error": str(e)
+        }
+            if speaker_col:
+                record["speaker"] = speaker
+            results.append(record)
 
     # Store the results before returning
     analysis_store.results['nous-hermes'] = results
     analysis_store.timestamp = datetime.now()
     return results
-
-@app.get("/analyze/bart")
-def analyze_bart(file: UploadFile = File(...)):
+@app.get("/analyze/bart/file")
+def analyze_bart_get(file: UploadFile = File(...)):
     content = file.file.read()
-    df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
+    df = pd.read_csv(io.StringIO(content.decode("utf-8")))
+    df.columns = [c.strip().lower() for c in df.columns]
+    if "utterance" not in df.columns:
+        raise HTTPException(status_code=400, detail="CSV must contain an 'utterance' column")
+
+    speaker_col = "speaker" if "speaker" in df.columns else None
     results = []
 
-    # Skip the header row if it exists
-    utterances = df["utterance"].iloc[1:] if df["utterance"].iloc[0].lower() == "utterance" else df["utterance"]
-
-    for utt in utterances:
+    for _, row in df.iterrows():
+        utt = row["utterance"]
+        speaker = row[speaker_col] if speaker_col else None
         valence, arousal = sentiment2d(utt)
         distortions = detect_distortions(utt)
-        results.append({
+        record={
             "utterance": utt,
             "valence": round(valence, 3),
             "arousal": round(arousal, 3),
-            "distortions": [d["distortion"] for d in distortions]
-        })
-    return results
+            "distortions": [d["distortion"] for d in distortions],
+        }
+        if speaker_col:
+            record["speaker"] = speaker
+        results.append(record)
 
 @app.get("/upload-csv", response_class=HTMLResponse)
 async def upload_form():
@@ -795,58 +754,69 @@ async def get_dashboard(analysis_type: str):
 
     # Get the latest analysis results
     if analysis_type == "modernbert":
-        fig = create_emotion_dashboard(analysis_store.results[analysis_type])
+        figs = create_emotion_dashboard_plotly(analysis_store.results[analysis_type])
+        html_parts = [
+            figs["box"].to_html(full_html=False, include_plotlyjs="cdn"),
+            figs["mean_std"].to_html(full_html=False, include_plotlyjs=False),
+            figs["range_bar"].to_html(full_html=False, include_plotlyjs=False),
+        ]
     else:  # bart or nous-hermes
-        fig = create_sentiment_dashboard(analysis_store.results[analysis_type])
+        figs = create_sentiment_dashboard_plotly(analysis_store.results[analysis_type])
+        html_parts = [
+            figs["scatter"].to_html(full_html=False, include_plotlyjs="cdn"),
+            figs["valence_hist"].to_html(full_html=False, include_plotlyjs=False),
+            figs["arousal_hist"].to_html(full_html=False, include_plotlyjs=False),
+        ]
 
-    # Convert plot to base64 string
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    plot_url = base64.b64encode(buf.getvalue()).decode()
+        # Convert plot to base64 string
+        """ buf = io.BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        plot_url = base64.b64encode(buf.getvalue()).decode()"""
 
-    # Create HTML with timestamp
-    timestamp_str = analysis_store.timestamp.strftime("%Y-%m-%d %H:%M:%S") if analysis_store.timestamp else "Unknown"
-    html_content = f'''
-        <html>
-            <head>
-                <title>Sentiment Analysis Dashboard</title>
-                <style>
-                    body {{ 
-                        font-family: Arial, sans-serif;
-                        margin: 0;
-                        padding: 20px;
-                        background: #1a1a1a;
-                        color: white;
-                    }}
-                    .dashboard {{
-                        max-width: 1200px;
-                        margin: 0 auto;
-                        background: #2d2d2d;
-                        padding: 20px;
-                        border-radius: 10px;
-                    }}
-                    img {{
-                        width: 100%;
-                        height: auto;
-                    }}
-                    .timestamp {{
-                        color: #888;
-                        font-size: 0.8em;
-                        margin-top: 10px;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="dashboard">
-                    <h1>{analysis_type.title()} Analysis Dashboard</h1>
-                    <img src="data:image/png;base64,{plot_url}">
-                    <div class="timestamp">Last analyzed: {timestamp_str}</div>
-                </div>
-            </body>
-        </html>
-    '''
-    return HTMLResponse(content=html_content)
+
+        # Create HTML with timestamp
+        timestamp_str = analysis_store.timestamp.strftime("%Y-%m-%d %H:%M:%S") if analysis_store.timestamp else "Unknown"
+        html_content = f'''
+            <html>
+                <head>
+                    <title>Sentiment Analysis Dashboard</title>
+                    <style>
+                        body {{ 
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 20px;
+                            background: #1a1a1a;
+                            color: white;
+                        }}
+                        .dashboard {{
+                            max-width: 1200px;
+                            margin: 0 auto;
+                            background: #2d2d2d;
+                            padding: 20px;
+                            border-radius: 10px;
+                        }}
+                        img {{
+                            width: 100%;
+                            height: auto;
+                        }}
+                        .timestamp {{
+                            color: #888;
+                            font-size: 0.8em;
+                            margin-top: 10px;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="dashboard">
+                        <h1>{analysis_type.title()} Analysis Dashboard</h1>
+                          {"".join(html_parts)}
+                        <div class="timestamp">Last analyzed: {timestamp_str}</div>
+                    </div>
+                </body>
+            </html>
+        '''
+        return HTMLResponse(content=html_content)
 
 
 @app.get("/dashboard", response_class=HTMLResponse)

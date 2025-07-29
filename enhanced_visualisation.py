@@ -70,6 +70,10 @@ from typing import Iterable, Dict, Any, List, Union
 # Define a cyberpunk-inspired colour palette (neon pinks, violets and blues).
 # This palette is used for discrete colour assignments.  Continuous colour
 # scales are derived from these colours.
+
+# Define a cyberpunk-inspired colour palette (neon pinks, violets and blues).
+# This palette is used for discrete colour assignments.  Continuous colour
+# scales are derived from these colours.
 CYBERPUNK_PALETTE: List[str] = [
     "#FF37A6",  # neon pink
     "#8E57FF",  # violet
@@ -77,6 +81,39 @@ CYBERPUNK_PALETTE: List[str] = [
     "#34D399",  # mint green
     "#F5A623",  # amber
 ]
+
+def _add_speaker_dropdown(fig, speakers: List[str]) -> None:
+    """Add a dropdown menu to toggle speaker visibility."""
+    if len(speakers) <= 1:
+        return
+    buttons = [
+        {
+            "label": "All",
+            "method": "update",
+            "args": [{"visible": [True] * len(speakers)}],
+        }
+    ]
+    for i, sp in enumerate(speakers):
+        vis = [False] * len(speakers)
+        vis[i] = True
+        buttons.append(
+            {
+                "label": sp,
+                "method": "update",
+                "args": [{"visible": vis}],
+            }
+        )
+    fig.update_layout(
+        updatemenus=[
+            {
+                "buttons": buttons,
+                "direction": "down",
+                "showactive": True,
+                "x": 0,
+                "y": 1.15,
+            }
+        ]
+    )
 
 
 def _prepare_sentiment_dataframe(data: Union[pd.DataFrame, Iterable[dict]]) -> pd.DataFrame:
@@ -93,7 +130,10 @@ def _prepare_sentiment_dataframe(data: Union[pd.DataFrame, Iterable[dict]]) -> p
         A DataFrame with columns ``utterance``, ``valence`` and ``arousal``.
     """
     if isinstance(data, pd.DataFrame):
-        return data.copy().reset_index(drop=True)
+        df = data.copy().reset_index(drop=True)
+        if "speaker" not in df.columns:
+            df["speaker"] = "Unknown"
+        return df
     rows: List[dict] = []
     for item in data:
         if not isinstance(item, dict):
@@ -104,7 +144,8 @@ def _prepare_sentiment_dataframe(data: Union[pd.DataFrame, Iterable[dict]]) -> p
         val = item.get("valence", 0.0)
         aro = item.get("arousal", 0.0)
         text = item.get("utterance", "")
-        rows.append({"utterance": text, "valence": val, "arousal": aro})
+        speaker = item.get("speaker", "Unknown")
+        rows.append({"utterance": text, "valence": val, "arousal": aro, "speaker": speaker})
     return pd.DataFrame(rows)
 
 
@@ -152,7 +193,7 @@ def _prepare_emotion_dataframe(data: Union[pd.DataFrame, Iterable[Any]]) -> pd.D
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+
 
 # A modern, cyberpunk-inspired color palette
 CYBERPUNK_PALETTE = ["#FF37A6", "#8E57FF", "#00B7FF", "#34D399", "#F5A623"]
@@ -176,89 +217,100 @@ def _prepare_emotion_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df_out['range'] = df_out['max_val'] - df_out['min_val']
     return df_out
 
-def create_sentiment_dashboard_plotly(df: pd.DataFrame, show_text: bool = False):
-    """
-    Creates a multi-plot dashboard for sentiment analysis using Plotly.
-    """
-    df = _prepare_sentiment_dataframe(df)
+def create_sentiment_dashboard_plotly(
+    data: Union[pd.DataFrame, Iterable[Dict[str, Any]]],
+    *,
+    palette: List[str] = CYBERPUNK_PALETTE,
+) -> Dict[str, "plotly.graph_objs._figure.Figure"]:
+    """Create interactive Plotly figures for valence/arousal analysis.
 
-    # Ensure hover text is always available
-    hover_text = df['utterance']
+    Parameters
+    ----------
+    data : pandas.DataFrame or iterable of dict
+        Must contain ``utterance``, ``valence`` and ``arousal`` columns/keys.
+    palette : list of str, optional
+        A list of hex colour codes defining the discrete palette used for
+        chart elements.  Defaults to ``CYBERPUNK_PALETTE``.
 
-    # Scatter plot for Valence-Arousal
+    Returns
+    -------
+    dict
+        A dictionary with keys ``scatter``, ``valence_hist`` and
+        ``arousal_hist`` mapping to Plotly Figure objects.
+    """
+    df = _prepare_sentiment_dataframe(data)
+
+    df = df.reset_index(drop=True)
+    speakers = df["speaker"].unique().tolist()
+
     scatter_fig = px.scatter(
         df,
-        x='valence',
-        y='arousal',
-        title='Valence-Arousal Space',
-        template=PLOTLY_DARK_TEMPLATE,
-        color='color_idx',
-        color_continuous_scale=CYBERPUNK_PALETTE,
-        text='utterance' if show_text else None,  # Conditionally show text
-        hover_data={"utterance": True, "valence": True, "arousal": True}
+        x="valence",
+        y="arousal",
+        text="utterance",
+        color="speaker",
+        color_discrete_sequence=palette,
+        title="Valence‑Arousal Space",
+        labels={"valence": "Valence", "arousal": "Arousal", "speaker": "Speaker"},
     )
     scatter_fig.update_traces(
-        marker=dict(size=12, line=dict(width=1, color='white')),
-        textposition='top center'
+        marker=dict(size=9, line=dict(width=1, color="#FFFFFF")),
+        textposition="top center",
+        textfont=dict(color="#FFFFFF", size=10),
     )
     scatter_fig.update_layout(
-        paper_bgcolor=PAPER_BG_COLOR,
-        plot_bgcolor=PAPER_BG_COLOR,
-        font_color=FONT_COLOR,
-        coloraxis_showscale=False
+        template="plotly_dark",
+        plot_bgcolor="#0d0c1d",
+        paper_bgcolor="#0d0c1d",
+        font=dict(color="#F5F5F5"),
+        coloraxis_showscale=False,
     )
+    _add_speaker_dropdown(scatter_fig, speakers)
 
-    # Histograms for Valence and Arousal
-    valence_hist = px.histogram(df, x='valence', title='Valence Distribution', template=PLOTLY_DARK_TEMPLATE, color_discrete_sequence=[CYBERPUNK_PALETTE[0]])
-    valence_hist.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
+    # Histogram of valence values
+    valence_hist = px.histogram(
+        df,
+        x="valence",
+        nbins=max(10, int(len(df) / 4)),
+        color="speaker",
+        barmode="overlay",
+        opacity=0.75,
+        color_discrete_sequence=palette,
+        title="Valence Distribution",
+        labels={"valence": "Valence", "count": "Count", "speaker": "Speaker"},
+    )
+    valence_hist.update_layout(
+        template="plotly_dark",
+        plot_bgcolor="#0d0c1d",
+        paper_bgcolor="#0d0c1d",
+        font=dict(color="#F5F5F5"),
+    )
+    _add_speaker_dropdown(valence_hist, speakers)
 
-    arousal_hist = px.histogram(df, x='arousal', title='Arousal Distribution', template=PLOTLY_DARK_TEMPLATE, color_discrete_sequence=[CYBERPUNK_PALETTE[1]])
-    arousal_hist.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
+    # Histogram of arousal values
+    arousal_hist = px.histogram(
+        df,
+        x="arousal",
+        nbins=max(10, int(len(df) / 4)),
+        color="speaker",
+        barmode="overlay",
+        opacity=0.75,
+        color_discrete_sequence=[palette[2] if len(palette) > 2 else palette[0]],
+        title="Arousal Distribution",
+        labels={"arousal": "Arousal", "count": "Count", "speaker": "Speaker"},
+    )
+    arousal_hist.update_layout(
+        template="plotly_dark",
+        plot_bgcolor="#0d0c1d",
+        paper_bgcolor="#0d0c1d",
+        font=dict(color="#F5F5F5"),
+    )
+    _add_speaker_dropdown(arousal_hist, speakers)
 
     return {
         "scatter": scatter_fig,
         "valence_hist": valence_hist,
-        "arousal_hist": arousal_hist
-    }
-
-def create_emotion_dashboard_plotly(df: pd.DataFrame):
-    """
-    Creates a multi-plot dashboard for emotion summary using Plotly.
-    """
-    df = _prepare_emotion_dataframe(df)
-
-    # Box plot for emotion distributions
-    box_fig = px.box(
-        df, x='emotion', y='mean',
-        title='Emotion Mean Distribution',
-        template=PLOTLY_DARK_TEMPLATE,
-        color_discrete_sequence=CYBERPUNK_PALETTE
-    )
-    box_fig.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
-
-    # Bar chart for Mean and Std Dev
-    mean_std_fig = go.Figure(data=[
-        go.Bar(name='Mean', x=df['emotion'], y=df['mean'], marker_color=CYBERPUNK_PALETTE[1]),
-        go.Bar(name='Std Dev', x=df['emotion'], y=df['std'], marker_color=CYBERPUNK_PALETTE[2])
-    ])
-    mean_std_fig.update_layout(
-        barmode='group', title='Mean and Std Dev of Emotions',
-        template=PLOTLY_DARK_TEMPLATE, paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR
-    )
-
-    # Bar chart for emotion ranges
-    range_bar_fig = px.bar(
-        df, x='emotion', y='range',
-        title='Emotion Value Range (Max - Min)',
-        template=PLOTLY_DARK_TEMPLATE,
-        color_discrete_sequence=[CYBERPUNK_PALETTE[3]]
-    )
-    range_bar_fig.update_layout(paper_bgcolor=PAPER_BG_COLOR, plot_bgcolor=PAPER_BG_COLOR, font_color=FONT_COLOR)
-
-    return {
-        "box": box_fig,
-        "mean_std": mean_std_fig,
-        "range_bar": range_bar_fig
+        "arousal_hist": arousal_hist,
     }
 
 
@@ -275,8 +327,7 @@ def create_emotion_dashboard_plotly(
         Must contain ``emotion``, ``mean``, ``std``, ``max_val`` and ``min_val``.
     palette : list of str, optional
         Colour palette to use for discrete series.  Defaults to
-        ``CYBERPUNK_PALETTE``.
-
+        ``CYBERPUNK_PALETTE``
     Returns
     -------
     dict
