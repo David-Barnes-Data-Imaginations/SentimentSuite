@@ -43,7 +43,8 @@ You can install them with:
 <p align="center">
   <img src="./BART_git.png" alt="Upload diagram">
 </p>
-5. View the dashboard. After analysis completes, click “View Dashboard” to see the interactive plots. The figures show each utterance in the valence–arousal space, histograms of valence and arousal, and summary statistics. You can hover over points to see the corresponding text.
+5. View the dashboard. After analysis completes, click “View Dashboard” to open an HTML page containing interactive Plotly charts.  These allow you to zoom, pan and hover to inspect each utterance as well as distributions of valence and arousal.
+
 
 <h2 align='center'>
   The top half of the BART dashboard
