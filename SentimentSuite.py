@@ -378,7 +378,7 @@ def analyze_bart(file: UploadFile = File(...)):
     analysis_store.timestamp = datetime.now()
     return results
 
-
+@app.post("/analyze/nous-hermes")
 def analyze_nous_hermes(file: UploadFile = File(...)):
     content = file.file.read()
     df = pd.read_csv(io.StringIO(content.decode("utf-8")))

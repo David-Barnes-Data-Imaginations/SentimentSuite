@@ -64,7 +64,6 @@ interactive HTML is usually preferable.
 from __future__ import annotations
 
 import pandas as pd
-import plotly.express as px
 from typing import Iterable, Dict, Any, List, Union
 
 # Define a cyberpunk-inspired colour palette (neon pinks, violets and blues).
@@ -248,6 +247,7 @@ def create_sentiment_dashboard_plotly(
         x="valence",
         y="arousal",
         text="utterance",
+        hover_name="utterance",
         color="speaker",
         color_discrete_sequence=palette,
         title="Valence‑Arousal Space",
@@ -255,8 +255,6 @@ def create_sentiment_dashboard_plotly(
     )
     scatter_fig.update_traces(
         marker=dict(size=9, line=dict(width=1, color="#FFFFFF")),
-        textposition="top center",
-        textfont=dict(color="#FFFFFF", size=10),
     )
     scatter_fig.update_layout(
         template="plotly_dark",
