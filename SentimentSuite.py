@@ -278,8 +278,9 @@ async def upload_csv(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/analyze/bart")
-def analyze_bart(file: UploadFile = File(...)):
+# Moved to a separate path so the POST version remains the primary entry point
+@app.get("/analyze/bart/file")
+def analyze_bart_get(file: UploadFile = File(...)):
     content = file.file.read()
     df = pd.read_csv(io.StringIO(content.decode("utf-8")), header=None, names=["utterance"])
     results = []
@@ -294,6 +295,10 @@ def analyze_bart(file: UploadFile = File(...)):
             "valence": round(valence, 3),  # Round to 3 decimal places for cleaner output
             "arousal": round(arousal, 3)
         })
+
+    # Store results just like the POST endpoint
+    analysis_store.results['bart'] = results
+    analysis_store.timestamp = datetime.now()
     return results
 
 @app.get("/upload-csv", response_class=HTMLResponse)
