@@ -35,7 +35,7 @@ You can install them with:
        uvicorn SentimentSuite:app --reload --port 8000
        ```
 
-4. Upload your data. Navigate to `http://localhost:8000/upload-csv` and upload a CSV file with an utterance column (I've added an example you can use, the utterances of taken from a well-know Therapy session 'Carl and Gloria'). Choose the model you wish to use (e.g., ModernBERT, BART, or Nous‑Hermes).
+4. Upload your data. Navigate to `http://localhost:8000/upload-csv` and upload a CSV file with **speaker** and **utterance** columns (see the example in `data/converted_csvs`). Choose the model you wish to use (e.g., ModernBERT, BART, Nous‑Hermes or select all of them and analyze).
 <h2 align='center'>
   This shows the upload screen and BARTs output when analyzed
 </h2>
@@ -43,7 +43,7 @@ You can install them with:
 <p align="center">
   <img src="./BART_git.png" alt="Upload diagram">
 </p>
-5. View the dashboard. After analysis completes, click “View Dashboard” to open an HTML page containing interactive Plotly charts.  These allow you to zoom, pan and hover to inspect each utterance as well as distributions of valence and arousal.
+5. View the dashboard. After analysis completes, click “View Dashboard” to open an HTML page containing interactive Plotly charts.  These allow you to zoom, pan and hover to inspect each utterance as well as distributions of valence and arousal.  A dropdown above each chart lets you filter by **Client** or **Therapist** utterances.
 
 
 <h2 align='center'>
