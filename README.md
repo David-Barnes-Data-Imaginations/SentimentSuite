@@ -2,6 +2,13 @@
 SentimentSuite is an experimental sentiment analysis tool built on top of large‑language models (LLMs) and modern visualisation libraries.
 It aims to move beyond the dated, lexicon‑based approaches commonly encountered in many data‑science courses (for example, NLTK’s Vader or Punkt tokenisers) and instead leverage models such as BART and Nous‑Hermes to produce richer, more nuanced emotional insights. At its core, SentimentSuite organises emotions according to Russell’s Circumplex Model, also known as the Valence–Arousal model.
 
+# Repo discontinued (Sort-of)
+This dashboard was originally intended to be a demo for a friend, but has since exploded into a far more purposeful endeavour.
+The three models were used as a demo, but I've spent enough time on it to realise that ModernBart outperforms on all tasks for my intended goals.
+Whilst the final step for the dashboard would have been to add the emotions (happy, sad etc..) to the circumplex model, its trickier than it sounds (especially as my webdev skills are average at best).
+The feature defeated Gemini Pro, GPT and Claude (AI's are unfortunately not great at bug fixing AI driven projects for some reason), and whilst I have now worked out the fix, I'm ditching the other two models and keeping ModernBert in for the grander project, implementing the fix in that.
+I'm creating a new repo for that since the 3 models do demonstrate 'art of the possible' so this will remain as the sentiment suite, and the new repo will be 'Persona-Forge-Therapy'... It's gonna be wild.
+
 ## Why a Valence–Arousal Model?
 
 Traditional sentiment‑analysis systems classify text into a handful of discrete labels—often “positive”, “negative” or “neutral”. While simple to understand, this binary view fails to capture the subtleties of human emotion. Russell’s Circumplex places emotions on a two‑dimensional plane defined by:
@@ -68,6 +75,7 @@ appropriate tests/documentation.
 This project is released under the MIT License. See LICENSE for
 details.
 
+
 ## TODO:
 
 #### Add in one more Psychology Framework, here's a brief explanation:
@@ -82,7 +90,5 @@ Why it’s useful:
 You can predict behaviour based on stage (e.g. young adults may question purpose, mid-lifers wrestle with contribution vs. burnout).
 It enables timeline-based persona evolution, perfect for graph-based NPCs or chatbot personas who “age” or undergo “narrative arcs”.
 
-
 2. Combine my SmolAgents runner (from the data scientist project to dynamically learn, transcribe and send an annonomised summary to GPT with is extremely good at psychological analysis).
-
 3. Smolagents runner to transcribe and annonomise from recordings
