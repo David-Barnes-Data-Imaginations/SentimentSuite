@@ -119,9 +119,6 @@ class Sentiment2D:
         """Process the utterance and return valence-arousal pair"""
         return self.get_utterance_valence_arousal(utterance)
 
-
-
-
 # Initialize Sentiment2D
 sentiment2d = Sentiment2D()
 
@@ -174,7 +171,7 @@ def dashboard_all_models():
     for model_name, result_data in analysis_store.results.items():
         if not result_data:
             continue
-        kind = "utterance" if model_name in ["bart", "nous-hermes"] else "summary"
+        kind = "utterance" if model_name in ["nous-hermes"] else "summary"
         tab_html = build_dashboard_tabbed(model_name, result_data, kind)
         tabs_html.append(f'''
             <div class='tab-content' id='{model_name}' style='display:none'>
@@ -342,41 +339,8 @@ class AnalysisResults:
 analysis_store = AnalysisResults()
 analysis_store.results = {
     'modernbert': [],
-    'bart': [],
     'nous-hermes': []
 }
-
-
-# Modify analysis endpoints to store results
-@app.post("/analyze/bart")
-def analyze_bart(file: UploadFile = File(...)):
-    content = file.file.read()
-    df = pd.read_csv(io.StringIO(content.decode("utf-8")))
-    df.columns = [c.strip().lower() for c in df.columns]
-    if "utterance" not in df.columns:
-        raise HTTPException(status_code=400, detail="CSV must contain an 'utterance' column")
-
-    speaker_col = "speaker" if "speaker" in df.columns else None
-    results = []
-
-    for _, row in df.iterrows():
-        utt = row["utterance"]
-        speaker = row[speaker_col] if speaker_col else None
-        valence, arousal = sentiment2d(utt)
-        record = {
-            "utterance": utt,
-            "valence": round(valence, 3),
-                        "arousal": round(arousal, 3),
-        }
-        if speaker_col:
-            record["speaker"] = speaker
-        results.append(record)
-
-
-    # Store the results
-    analysis_store.results['bart'] = results
-    analysis_store.timestamp = datetime.now()
-    return results
 
 def infer_emotion_from_va(valence: float, arousal: float) -> str:
     """
@@ -460,33 +424,6 @@ def analyze_nous_hermes(file: UploadFile = File(...)):
     analysis_store.results['nous-hermes'] = results
     analysis_store.timestamp = datetime.now()
     return results
-@app.get("/analyze/bart/file")
-def analyze_bart_get(file: UploadFile = File(...)):
-    content = file.file.read()
-    df = pd.read_csv(io.StringIO(content.decode("utf-8")))
-    df.columns = [c.strip().lower() for c in df.columns]
-    if "utterance" not in df.columns:
-        raise HTTPException(status_code=400, detail="CSV must contain an 'utterance' column")
-
-    speaker_col = "speaker" if "speaker" in df.columns else None
-    results = []
-
-    for _, row in df.iterrows():
-        utt = row["utterance"]
-        speaker = row[speaker_col] if speaker_col else None
-        valence, arousal = sentiment2d(utt)
-        distortions = detect_distortions(utt)
-        emotion = infer_emotion_from_va(valence, arousal)
-        record={
-            "utterance": utt,
-            "valence": round(valence, 3),
-            "arousal": round(arousal, 3),
-            "emotion": emotion,
-            "distortions": [d["distortion"] for d in distortions],
-        }
-        if speaker_col:
-            record["speaker"] = speaker
-        results.append(record)
 
 @app.get("/upload-csv", response_class=HTMLResponse)
 async def upload_form():
@@ -551,7 +488,6 @@ async def upload_form():
                 <div class="upload-form">
                     <form id="uploadForm" enctype="multipart/form-data">
                         <select name="method" class="method-select">
-                            <option value="bart">BART Analysis</option>
                             <option value="nous-hermes">Nous-Hermes Analysis</option>
                             <option value="modernbert">ModernBERT Analysis</option>
                         </select>
@@ -574,7 +510,6 @@ async def upload_form():
                         let endpoint = '';
 
                         switch(method) {
-                            case 'bart': endpoint = '/analyze/bart'; break;
                             case 'nous-hermes': endpoint = '/analyze/nous-hermes'; break;
                             case 'modernbert': endpoint = '/upload-csv-process'; break;
                         }
@@ -777,7 +712,7 @@ async def get_dashboard(analysis_type: str):
             figs["mean_std"].to_html(full_html=False, include_plotlyjs=False),
             figs["range_bar"].to_html(full_html=False, include_plotlyjs=False),
         ]
-    else:  # bart or nous-hermes
+    else:  # nous-hermes
         figs = create_sentiment_dashboard_plotly(analysis_store.results[analysis_type])
         html_parts = [
             figs["scatter"].to_html(full_html=False, include_plotlyjs="cdn"),
@@ -876,7 +811,6 @@ async def dashboard_home():
                     <h1>Sentiment Analysis Dashboards</h1>
                     <a href="/upload-csv" class="dashboard-link">Upload New Data</a>
                     <a href="/dashboard/modernbert" class="dashboard-link">ModernBERT Dashboard</a>
-                    <a href="/dashboard/bart" class="dashboard-link">BART Dashboard</a>
                     <a href="/dashboard/nous-hermes" class="dashboard-link">Nous-Hermes Dashboard</a>
                 </div>
             </body>
