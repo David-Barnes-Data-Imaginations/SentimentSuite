@@ -1,32 +1,42 @@
 
 import plotly.graph_objects as go
 import pandas as pd
-import numpy as np
+from emotion_mapping import modernbert_va_map
 
-def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None, show_text: bool = False):
+
+def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None, show_text: bool = True):
     """
     Create a circular Russell-style Circumplex plot with valence/arousal points.
 
     Parameters
     ----------
     data : pd.DataFrame
-        DataFrame with columns: 'utterance', 'valence', 'arousal'.
+        DataFrame with columns: 'utterance', 'valence', 'arousal' OR 'emotion'.
     palette : list of str, optional
         Color palette for the points.
     show_text : bool, optional
-        Whether to show utterance text directly on the plot. Defaults to True.
+        Whether to show emotion label directly on the plot. Defaults to True.
 
     Returns
     -------
     go.Figure
         The circular Plotly figure.
     """
+    import plotly.graph_objects as go
+    import numpy as np
+
     palette = palette or ["#FF37A6", "#8E57FF", "#00B7FF", "#34D399", "#F5A623"]
     df = data.copy().reset_index(drop=True)
+
+    # Inject valence/arousal if they're missing but we have emotion labels
+    if "valence" not in df.columns and "emotion" in df.columns:
+        df["valence"] = df["emotion"].apply(lambda e: modernbert_va_map.get(e, (0.0, 0.0))[0])
+        df["arousal"] = df["emotion"].apply(lambda e: modernbert_va_map.get(e, (0.0, 0.0))[1])
+
     df["idx"] = df.index
 
     # Create the circumplex background grid
-    theta = np.linspace(0, 2*np.pi, 500)
+    theta = np.linspace(0, 2 * np.pi, 500)
     x_circle = np.cos(theta)
     y_circle = np.sin(theta)
 
@@ -42,14 +52,18 @@ def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None, show_t
     ))
 
     # Add axes (cross)
-    fig.add_trace(go.Scatter(x=[-1, 1], y=[0, 0], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
-    fig.add_trace(go.Scatter(x=[0, 0], y=[-1, 1], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
+    fig.add_trace(
+        go.Scatter(x=[-1, 1], y=[0, 0], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
+    fig.add_trace(
+        go.Scatter(x=[0, 0], y=[-1, 1], mode='lines', line=dict(color='gray', width=1, dash='dot'), showlegend=False))
 
+    # Now plot the actual data
     fig.add_trace(go.Scatter(
         x=df["valence"],
         y=df["arousal"],
-        mode='markers',
-        text=df["utterance"] if show_text else df["utterance"],
+        mode='markers+text' if show_text else 'markers',
+        text=df["emotion"] if show_text and "emotion" in df.columns else None,
+        hovertext=df["utterance"] if "utterance" in df.columns else None,
         hoverinfo='text',
         textposition="top center",
         marker=dict(
@@ -58,7 +72,7 @@ def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None, show_t
             colorscale=palette,
             line=dict(width=1, color='white')
         ),
-        hovertemplate="%{text}<br>Valence: %{x}<br>Arousal: %{y}",
+        hovertemplate="%{hovertext}<br>Valence: %{x}<br>Arousal: %{y}",
         showlegend=False
     ))
 

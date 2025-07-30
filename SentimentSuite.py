@@ -4,7 +4,6 @@ import requests
 import os
 import torch
 import matplotlib
-
 matplotlib.use('Agg')
 from transformers import pipeline
 import pandas as pd
@@ -19,9 +18,15 @@ from sentiment_dashboard_tabs import build_dashboard_tabbed
 from circumplex_plot import create_circumplex_plot
 from distortion_detection import detect_distortions
 from fastapi.responses import HTMLResponse
+from emotion_mapping import modernbert_va_map
+import math
 
 torch.set_float32_matmul_precision('high')
+# Set environment variable before importing torch
+os.environ["TORCHINDUCTOR_DISABLE"] = "1"
 
+# Initialize FastAPI app
+app = FastAPI()
 
 # Updated the Sentiment2D class with
 # more emotions and patterns
@@ -115,11 +120,7 @@ class Sentiment2D:
         return self.get_utterance_valence_arousal(utterance)
 
 
-# Set environment variable before importing torch
-os.environ["TORCHINDUCTOR_DISABLE"] = "1"
 
-# Initialize FastAPI app
-app = FastAPI()
 
 # Initialize Sentiment2D
 sentiment2d = Sentiment2D()
@@ -377,6 +378,19 @@ def analyze_bart(file: UploadFile = File(...)):
     analysis_store.timestamp = datetime.now()
     return results
 
+def infer_emotion_from_va(valence: float, arousal: float) -> str:
+    """
+    Match a valence/arousal pair to the closest ModernBERT emotion using Euclidean distance.
+    """
+    closest = "neutral"
+    min_dist = float('inf')
+    for emotion, (vx, vy) in modernbert_va_map.items():
+        dist = math.sqrt((valence - vx) ** 2 + (arousal - vy) ** 2)
+        if dist < min_dist:
+            min_dist = dist
+            closest = emotion
+    return closest
+
 @app.post("/analyze/nous-hermes")
 def analyze_nous_hermes(file: UploadFile = File(...)):
     content = file.file.read()
@@ -421,11 +435,13 @@ def analyze_nous_hermes(file: UploadFile = File(...)):
 
                 # If Nous-Hermes fails, fallback to our Sentiment2D
                 valence, arousal = sentiment2d(utt)
+                emotion = infer_emotion_from_va(valence, arousal)
                 record = {
                 "utterance": utt,
                 "model": "sentiment2d-fallback",
                 "valence": round(valence, 3),
-                "arousal": round(arousal, 3)
+                "arousal": round(arousal, 3),
+                "emotion": emotion
                 }
                 if speaker_col:
                     record["speaker"] = speaker
@@ -460,10 +476,12 @@ def analyze_bart_get(file: UploadFile = File(...)):
         speaker = row[speaker_col] if speaker_col else None
         valence, arousal = sentiment2d(utt)
         distortions = detect_distortions(utt)
+        emotion = infer_emotion_from_va(valence, arousal)
         record={
             "utterance": utt,
             "valence": round(valence, 3),
             "arousal": round(arousal, 3),
+            "emotion": emotion,
             "distortions": [d["distortion"] for d in distortions],
         }
         if speaker_col:
