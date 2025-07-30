@@ -16,7 +16,7 @@ Features
 - Modular design – Visualisation functions are separated into their own module (enhanced_visualisation.py) so they can be integrated into larger systems or reused elsewhere.
 
 ### Getting Started
-
+#### First download 'cirumus/ModernBert' from Hugging Face or wherever you get your raw models (i.e. model.safetensors). You must use the file structure of `*Project_Root*/models/1`
 1. Clone the repository:
        ```
        git clone https://github.com/David-Barnes-Data-Imaginations/SentimentSuite.git
