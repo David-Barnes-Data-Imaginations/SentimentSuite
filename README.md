@@ -47,19 +47,19 @@ You can install them with:
 
 
 <h2 align='center'>
-  The top half of the BART dashboard
+  The top half of the Hermes dashboard
 </h2>
 <br><br>
 <p align="center">
-  <img src="./BART_git2.png" alt="BART diagram 1">
+  <img src="./BART_git2.png" alt="Hermes diagram 1">
 </p>
 
 <h2 align='center'>
-  The bottom half of the BART dashboard
+  The bottom half of the Hermes dashboard
 </h2>
 <br><br>
 <p align="center">
-  <img src="./BART_git3.png" alt="BART diagram 2">
+  <img src="./Hermes_Bart_git.png" alt="Hermes diagram 2">
 </p>
 
 <h2 align='center'>
@@ -79,6 +79,10 @@ You can install them with:
   <img src="./Modernbert_git2.png" alt="Bert diagram 2">
 </p>
 
+# Repo discontinued (Sort-of)
+This dashboard was originally intended to be a demo for a friend, but has since exploded into a far more purposeful endeavour.
+The three models were used as a demo, but I've spent enough time on it to realise that ModernBert & outperforms on all tasks for my intended goals, whilst Hermes and BART are about equal, so i removed BART for now (but may switch back in for Hermes.
+I'm creating a new repo for the new project since the 2 models do demonstrate a 'pure' sentiment analyser, so this will remain as the sentiment suite, and the new repo will be 'Persona-Forge-Therapy'... It's gonna be wild.
 
 
 ## Part of a Larger Vision – The Persona‑Forge
