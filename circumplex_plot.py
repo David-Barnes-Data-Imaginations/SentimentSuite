@@ -48,7 +48,7 @@ def create_circumplex_plot(data: pd.DataFrame, palette: list[str] = None, show_t
     fig.add_trace(go.Scatter(
         x=df["valence"],
         y=df["arousal"],
-        mode='markers+text' if show_text else 'markers',
+        mode='markers',
         text=df["utterance"] if show_text else df["utterance"],
         hoverinfo='text',
         textposition="top center",

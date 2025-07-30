@@ -246,7 +246,6 @@ def create_sentiment_dashboard_plotly(
         df,
         x="valence",
         y="arousal",
-        text="utterance",
         hover_name="utterance",
         color="speaker",
         color_discrete_sequence=palette,

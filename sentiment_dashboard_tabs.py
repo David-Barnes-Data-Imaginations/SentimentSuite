@@ -1,6 +1,6 @@
 from fastapi.responses import HTMLResponse
 from enhanced_visualisation import create_sentiment_dashboard_plotly, create_emotion_dashboard_plotly
-from valence_circumplex_plot import create_circumplex_plot
+from circumplex_plot import create_circumplex_plot
 import pandas as pd
 from distortion_detection import detect_distortions
 from pydantic import BaseModel
