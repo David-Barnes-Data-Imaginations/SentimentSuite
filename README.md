@@ -81,8 +81,8 @@ You can install them with:
 
 # Repo discontinued (Sort-of)
 This dashboard was originally intended to be a demo for a friend, but has since exploded into a far more purposeful endeavour.
-The three models were used as a demo, but I've spent enough time on it to realise that ModernBert & outperforms on all tasks for my intended goals, whilst Hermes and BART are about equal, so i removed BART for now (but may switch back in for Hermes.
-I'm creating a new repo for the new project since the 2 models do demonstrate a 'pure' sentiment analyser, so this will remain as the sentiment suite, and the new repo will be 'Persona-Forge-Therapy'... It's gonna be wild.
+The three models were used as a demo, but I've spent enough time on it to realise that ModernBert outperforms on all tasks for my intended goals, whilst Hermes and BART are about equal, so i removed BART for now (but may switch back in for Hermes.
+I'm creating a new repo for the new project since the 2 models do demonstrate a 'pure' sentiment analyser, so this will remain as the sentiment suite, and the new repo is at 'https://github.com/David-Barnes-Data-Imaginations/Persona-Forge-Psychology'... It's gonna be wild.
 
 
 ## Part of a Larger Vision – The Persona‑Forge
