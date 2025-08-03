@@ -81,7 +81,9 @@ You can install them with:
 
 # Repo discontinued (Sort-of)
 This dashboard was originally intended to be a demo for a friend, but has since exploded into a far more purposeful endeavour.
-The three models were used as a demo, but I've spent enough time on it to realise that ModernBert outperforms on all tasks for my intended goals, whilst Hermes and BART are about equal, so i removed BART for now (but may switch back in for Hermes.
+The three models were used as a demo, but I've spent enough time on it to realise that ModernBert outperforms on all tasks for my intended goals, whilst Hermes and BART are about equal, so i removed BART for now (but may switch back in for Hermes). 
+
+The CSV file in here needs cleaning, since i used a simple script to format it and didn't get around to doing AI or manual edits (since i'm now using a different script for the Persona-Forge). To have the dashboard represent only the Carl and Glora arousal and valence it just needs to be split from the 'Carl and Sylvia' session etc and have the remaining author commentary removed. ModernBert is actually much better at the Arousal and valence tagging, so I use that plus Gemma3 & GPT to tag in the forge, but i left Hermes in here for demo purposes.
 I'm creating a new repo for the new project since the 2 models do demonstrate a 'pure' sentiment analyser, so this will remain as the sentiment suite, and the new repo is at 'https://github.com/David-Barnes-Data-Imaginations/Persona-Forge-Psychology'... It's gonna be wild.
 
 
